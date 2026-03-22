@@ -15,7 +15,7 @@ k9.workspace = true
 gl_generator.workspace = true
 
 [features]
-wayland = []
+wayland = ["dep:wayland-egl", "dep:wayland-client"]
 
 [dependencies]
 async-channel.workspace = true
@@ -57,3 +57,8 @@ objc.workspace = true
 objc2-core-graphics.workspace = true
 plist.workspace = true
 shlex.workspace = true
+
+[target.'cfg(all(unix, not(target_os="macos")))'.dependencies]
+filedescriptor.workspace = true
+wayland-egl = { workspace = true, optional = true }
+wayland-client = { workspace = true, optional = true }

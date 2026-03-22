@@ -1,4 +1,4 @@
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 use crate::os::windows::event::EventHandle;
 #[cfg(target_os = "macos")]
 use core_foundation::runloop::*;
@@ -29,7 +29,7 @@ pub(crate) struct SpawnQueue {
     spawned_funcs: Mutex<VecDeque<InstrumentedSpawnFunc>>,
     spawned_funcs_low_pri: Mutex<VecDeque<InstrumentedSpawnFunc>>,
 
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     pub event_handle: EventHandle,
 
     #[cfg(all(unix, not(target_os = "macos")))]
@@ -120,7 +120,7 @@ impl SpawnQueue {
     }
 }
 
-#[cfg(windows)]
+#[cfg(target_os = "windows")]
 impl SpawnQueue {
     fn new_impl() -> anyhow::Result<Self> {
         let spawned_funcs = Mutex::new(VecDeque::new());

@@ -1,12 +1,9 @@
-//! Windows-specific window and event handling
-//!
-//! This module provides Windows implementation for Kaku terminal.
+//! Linux-specific window and event handling (Stub for compilation)
 
 mod connection;
 mod window;
 mod clipboard;
 mod event;
-mod keycodes;
 
 pub use self::connection::*;
 pub use self::window::*;

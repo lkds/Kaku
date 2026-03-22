@@ -1,4 +1,11 @@
+#[cfg(target_os = "macos")]
 mod macos;
+
+#[cfg(target_os = "windows")]
+mod windows;
+
+#[cfg(target_os = "linux")]
+mod linux;
 
 use std::sync::Mutex;
 
@@ -16,7 +23,15 @@ impl ToastNotification {
     }
 }
 
+// Platform-specific backend selection
+#[cfg(target_os = "macos")]
 use macos as backend;
+
+#[cfg(target_os = "windows")]
+use windows as backend;
+
+#[cfg(target_os = "linux")]
+use linux as backend;
 
 pub fn show(notif: ToastNotification) {
     if let Err(err) = backend::show_notif(notif) {
