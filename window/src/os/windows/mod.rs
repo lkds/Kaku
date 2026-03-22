@@ -1,38 +1,36 @@
-//! Windows-specific window and event handling
+//! Windows-specific window and event handling (Stub)
 //!
-//! This module provides Windows implementation for Kaku terminal,
-//! including window management, clipboard, keyboard handling, and
-//! application lifecycle.
+//! This module provides Windows implementation for Kaku terminal.
+//! Currently a stub to allow compilation on Windows.
 
-mod app;
-mod bitmap;
-mod clipboard;
-mod connection;
-mod gl;
-mod keycodes;
-mod menu;
-mod window;
-
-pub use app::*;
-pub use bitmap::*;
-pub use clipboard::*;
-pub use connection::*;
-pub use gl::*;
-pub use keycodes::*;
-pub use menu::*;
-pub use window::*;
-
-use std::sync::Once;
-
-static INIT: Once = Once::new();
-
-/// Initialize Windows-specific resources
+// Stub implementation - will be filled in progressively
 pub fn init() {
-    INIT.call_once(|| {
-        // Initialize COM for clipboard and other Windows APIs
-        #[cfg(windows)]
-        unsafe {
-            winapi::um::ole2::OleInitialize(std::ptr::null_mut());
-        }
-    });
+    // TODO: Initialize Windows-specific resources
+}
+
+// Re-export from parameters for now
+pub use super::parameters::*;
+
+// Placeholder types for Windows
+pub struct Window;
+pub struct Application;
+pub struct Clipboard;
+pub struct EventHandle;
+pub struct Bitmap;
+pub struct Connection;
+pub struct Menu;
+
+impl Window {
+    pub fn new() -> Self { Self }
+}
+
+impl Application {
+    pub fn new() -> Self { Self }
+    pub fn run(&mut self) -> Result<(), ()> { Ok(()) }
+}
+
+impl Clipboard {
+    pub fn new() -> Self { Self }
+    pub fn get(&mut self) -> Result<String, ()> { Ok(String::new()) }
+    pub fn set(&mut self, _text: &str) -> Result<(), ()> { Ok(()) }
 }

@@ -57,15 +57,3 @@ objc.workspace = true
 objc2-core-graphics.workspace = true
 plist.workspace = true
 shlex.workspace = true
-
-[target.'cfg(windows)'.dependencies]
-winapi = { workspace = true, features = [
-    "winuser",
-    "wingdi",
-    "winbase",
-    "errhandlingapi",
-    "dwmapi",
-    "shellapi",
-    "ole2",
-] }
-parking_lot.workspace = true

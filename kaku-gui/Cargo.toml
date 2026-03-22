@@ -32,7 +32,6 @@ anyhow.workspace = true
 [target.'cfg(windows)'.build-dependencies]
 cc.workspace = true
 embed-resource.workspace = true
-winres = "0.1"
 
 [dependencies]
 anyhow.workspace = true
