@@ -58,6 +58,9 @@ objc2-core-graphics.workspace = true
 plist.workspace = true
 shlex.workspace = true
 
+[target.'cfg(target_os="windows")'.dependencies]
+winapi = { workspace = true, features = ["winuser", "windef"] }
+
 [target.'cfg(all(unix, not(target_os="macos")))'.dependencies]
 filedescriptor.workspace = true
 wayland-egl = { workspace = true, optional = true }

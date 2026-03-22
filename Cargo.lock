@@ -6254,6 +6254,7 @@ dependencies = [
  "wezterm-color-types",
  "wezterm-font",
  "wezterm-input-types",
+ "winapi",
 ]
 
 [[package]]

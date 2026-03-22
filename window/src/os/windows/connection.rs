@@ -41,14 +41,14 @@ impl ConnectionOps for Connection {
 
     fn terminate_message_loop(&self) {
         // Post quit message
-        #[cfg(windows)]
+        #[cfg(target_os = "windows")]
         unsafe {
             winapi::um::winuser::PostQuitMessage(0);
         }
     }
 
     fn run_message_loop(&self) -> Result<()> {
-        #[cfg(windows)]
+        #[cfg(target_os = "windows")]
         {
             use winapi::um::winuser::{GetMessageW, DispatchMessageW, TranslateMessage, MSG};
             
