@@ -33,6 +33,19 @@
 3. Open Kaku. The app is notarized by Apple, so it opens without security warnings
 4. On first launch, Kaku will automatically set up your shell environment
 
+### Windows (Experimental)
+
+1. [Download Windows Release](https://github.com/lkds/Kaku/releases/latest) (portable ZIP, MSI, or installer)
+2. **Portable**: Extract ZIP and run `kaku-gui.exe`
+3. **Installer**: Run `Kaku-*-setup.exe` for shell integration
+4. **MSI**: For enterprise deployment via GPO
+
+| Download | Description |
+|----------|-------------|
+| `Kaku-*-portable.zip` | No installation, run from any folder |
+| `Kaku-*-setup.exe` | NSIS installer with right-click menu |
+| `Kaku-*.msi` | MSI for enterprise deployment |
+
 ## Usage Guide
 
 Kaku comes with intuitive macOS-native shortcuts:

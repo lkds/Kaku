@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Product
+        Id="*"
+        Name="Kaku Terminal"
+        Language="1033"
+        Version="0.8.0"
+        Manufacturer="lkds"
+        UpgradeCode="a93b3b72-d338-5cc5-kaku-windows">
+
+        <Package
+            InstallerVersion="200"
+            Compressed="yes"
+            InstallScope="perMachine"
+            Platform="x64"/>
+
+        <MajorUpgrade DowngradeErrorMessage="A newer version of Kaku is already installed."/>
+        <MediaTemplate EmbedCab="yes"/>
+
+        <Feature Id="ProductFeature" Title="Kaku Terminal" Level="1">
+            <ComponentGroupRef Id="ProductComponents"/>
+            <ComponentGroupRef Id="ShellIntegration"/>
+        </Feature>
+
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <Directory Id="ProgramFiles64Folder">
+                <Directory Id="INSTALLFOLDER" Name="Kaku"/>
+            </Directory>
+            <Directory Id="ProgramMenuFolder">
+                <Directory Id="ApplicationProgramsFolder" Name="Kaku"/>
+            </Directory>
+            <Directory Id="DesktopFolder"/>
+        </Directory>
+
+        <DirectoryRef Id="INSTALLFOLDER">
+            <Component Id="MainExecutable" Guid="*">
+                <File Id="KakuGuiExe" Source="target\release\kaku-gui.exe" KeyPath="yes"/>
+                <File Id="KakuExe" Source="target\release\kaku.exe"/>
+                <ProgId Id="KakuTerminal.1" Description="Kaku Terminal Session">
+                    <Extension Id="kaku" ContentType="application/x-kaku-session">
+                        <Verb Id="open" Command="Open with Kaku" TargetFile="KakuGuiExe" Argument='"%1"'/>
+                    </Extension>
+                </ProgId>
+            </Component>
+            
+            <Component Id="Assets" Guid="*">
+                <File Id="AssetsReadme" Source="assets\kaku.jpeg"/>
+            </Component>
+        </DirectoryRef>
+
+        <DirectoryRef Id="ApplicationProgramsFolder">
+            <Component Id="ApplicationShortcut" Guid="*">
+                <Shortcut
+                    Id="ApplicationStartMenuShortcut"
+                    Name="Kaku Terminal"
+                    Description="Fast terminal for AI coding"
+                    Target="[INSTALLFOLDER]kaku-gui.exe"
+                    WorkingDirectory="INSTALLFOLDER"/>
+                <Shortcut
+                    Id="UninstallProduct"
+                    Name="Uninstall Kaku"
+                    Target="[SystemFolder]msiexec.exe"
+                    Arguments="/x [ProductCode]"/>
+                <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
+                <RegistryValue Root="HKCU" Key="Software\Kaku" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+            </Component>
+        </DirectoryRef>
+
+        <DirectoryRef Id="DesktopFolder">
+            <Component Id="DesktopShortcut" Guid="*">
+                <Shortcut
+                    Id="DesktopShortcut"
+                    Name="Kaku Terminal"
+                    Description="Fast terminal for AI coding"
+                    Target="[INSTALLFOLDER]kaku-gui.exe"
+                    WorkingDirectory="INSTALLFOLDER"/>
+                <RegistryValue Root="HKCU" Key="Software\Kaku\Desktop" Name="shortcut" Type="integer" Value="1" KeyPath="yes"/>
+            </Component>
+        </DirectoryRef>
+
+        <ComponentGroup Id="ProductComponents">
+            <ComponentRef Id="MainExecutable"/>
+            <ComponentRef Id="Assets"/>
+            <ComponentRef Id="ApplicationShortcut"/>
+            <ComponentRef Id="DesktopShortcut"/>
+        </ComponentGroup>
+
+        <ComponentGroup Id="ShellIntegration">
+            <Component Id="ContextMenuDirectory" Directory="TARGETDIR" Guid="*">
+                <RegistryKey Root="HKCR" Key="Directory\shell\Kaku">
+                    <RegistryValue Type="string" Value="Open Kaku here"/>
+                    <RegistryValue Type="string" Name="Icon" Value="[INSTALLFOLDER]kaku-gui.exe,0"/>
+                </RegistryKey>
+                <RegistryKey Root="HKCR" Key="Directory\shell\Kaku\command">
+                    <RegistryValue Type="string" Value='&quot;[INSTALLFOLDER]kaku-gui.exe&quot; --directory &quot;%V&quot;'/>
+                </RegistryKey>
+                <RegistryKey Root="HKCR" Key="Directory\Background\shell\Kaku">
+                    <RegistryValue Type="string" Value="Open Kaku here"/>
+                    <RegistryValue Type="string" Name="Icon" Value="[INSTALLFOLDER]kaku-gui.exe,0"/>
+                </RegistryKey>
+                <RegistryKey Root="HKCR" Key="Directory\Background\shell\Kaku\command">
+                    <RegistryValue Type="string" Value='&quot;[INSTALLFOLDER]kaku-gui.exe&quot; --directory &quot;%V&quot;'/>
+                </RegistryKey>
+            </Component>
+        </ComponentGroup>
+
+        <UI>
+            <UIRef Id="WixUI_InstallDir"/>
+            <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg" Order="2">1</Publish>
+            <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg">1</Publish>
+            <Publish Dialog="InstallDirDlg" Control="Next" Event="SetTargetPath" Value="[WIXUI_INSTALLDIR]" Order="1">1</Publish>
+            <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Order="2">1</Publish>
+            <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="InstallDirDlg">1</Publish>
+        </UI>
+
+        <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER"/>
+        <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch Kaku Terminal"/>
+        <CustomAction Id="LaunchApplication" FileKey="KakuGuiExe" ExeCommand="" Return="asyncNoWait"/>
+        <UI>
+            <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApplication">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed</Publish>
+        </UI>
+    </Product>
+</Wix>

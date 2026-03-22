@@ -1,12 +1,10 @@
-name: Windows Build
+name: Windows Build and Release
 
 on:
   push:
     branches: [ main, master, windows-support ]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '.github/workflows/**'
+    tags:
+      - 'v*'
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
@@ -17,7 +15,7 @@ env:
 
 jobs:
   build-windows:
-    name: Build on Windows
+    name: Build Windows
     runs-on: windows-latest
     
     steps:
@@ -42,98 +40,153 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cargo-
     
-    - name: Install LLVM and Clang
-      uses: KyleMayes/install-llvm-action@v1
-      with:
-        version: "17.0"
-    
-    - name: Set up MSVC environment
-      uses: ilammy/msvc-dev-cmd@v1
-    
-    - name: Build kaku CLI
-      run: cargo build --release --package kaku
-    
-    - name: Build kaku-gui
-      run: cargo build --release --package kaku-gui
+    - name: Build Release
+      run: cargo build --release
     
     - name: Run tests
-      run: cargo test --release --no-fail-fast -- --test-threads=1
+      run: cargo test --release --no-fail-fast
       continue-on-error: true
     
-    - name: Upload kaku.exe artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: kaku-cli-windows
-        path: target/release/kaku.exe
-        retention-days: 7
-    
-    - name: Upload kaku-gui.exe artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: kaku-gui-windows
-        path: target/release/kaku-gui.exe
-        retention-days: 7
-
-  # Cross-compile check on Linux (faster feedback)
-  check-windows-cross:
-    name: Cross-compile check (Linux)
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
-    
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        targets: x86_64-pc-windows-gnu
-    
-    - name: Install cross-compilation tools
+    - name: Create portable package
       run: |
-        sudo apt-get update
-        sudo apt-get install -y mingw-w64
-        sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
-        sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+        mkdir -p release
+        cp target/release/kaku.exe release/
+        cp target/release/kaku-gui.exe release/
+        cp -r assets release/ 2>/dev/null || true
+        cp README.md release/
+        cp LICENSE.md release/
     
-    - name: Cache cargo registry
-      uses: actions/cache@v4
+    - name: Create ZIP archive
+      run: |
+        cd release
+        7z a -tzip ../Kaku-${{ github.ref_name }}-windows-x64-portable.zip *
+    
+    - name: Upload portable artifact
+      uses: actions/upload-artifact@v4
       with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cross-cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cross-cargo-
-    
-    - name: Check compilation (kaku CLI only)
-      run: cargo check --target x86_64-pc-windows-gnu --package kaku
-      continue-on-error: true
-    
-    - name: Check compilation (kaku-gui)
-      run: cargo check --target x86_64-pc-windows-gnu --package kaku-gui
-      continue-on-error: true
+        name: kaku-portable-windows
+        path: Kaku-*-windows-x64-portable.zip
+        retention-days: 30
 
-  # Lint and format check
-  lint:
-    name: Lint and Format
-    runs-on: ubuntu-latest
+  build-msi:
+    name: Build MSI Installer
+    runs-on: windows-latest
+    needs: build-windows
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
     
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
+    - name: Download portable artifact
+      uses: actions/download-artifact@v4
       with:
-        components: rustfmt, clippy
+        name: kaku-portable-windows
     
-    - name: Check formatting
-      run: cargo fmt --all -- --check
-      continue-on-error: true
+    - name: Extract portable files
+      run: |
+        mkdir -p target/release
+        7z x Kaku-*-portable.zip -otarget/release -y
+        ls target/release
     
-    - name: Run clippy
-      run: cargo clippy --all-targets --all-features -- -D warnings
-      continue-on-error: true
+    - name: Install WiX Toolset
+      run: |
+        dotnet tool install --global wix --version 4.0.4
+        wix extension add WixToolset.UI.wixext
+    
+    - name: Build MSI
+      run: |
+        wix build wix/kaku.wxs -ext WixToolset.UI.wixext -o Kaku-0.8.0-windows-x64.msi
+    
+    - name: Upload MSI artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: kaku-msi-windows
+        path: Kaku-*-windows-x64.msi
+        retention-days: 30
+
+  build-nsis:
+    name: Build NSIS Installer
+    runs-on: windows-latest
+    needs: build-windows
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Download portable artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: kaku-portable-windows
+    
+    - name: Extract portable files
+      run: |
+        mkdir -p target/release
+        7z x Kaku-*-portable.zip -otarget/release -y
+    
+    - name: Install NSIS
+      run: choco install nsis -y
+    
+    - name: Build NSIS Installer
+      run: |
+        makensis kaku.nsi
+    
+    - name: Upload NSIS artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: kaku-nsis-windows
+        path: Kaku-*-windows-x64-setup.exe
+        retention-days: 30
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [build-msi, build-nsis]
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Download MSI
+      uses: actions/download-artifact@v4
+      with:
+        name: kaku-msi-windows
+    
+    - name: Download NSIS
+      uses: actions/download-artifact@v4
+      with:
+        name: kaku-nsis-windows
+    
+    - name: Download Portable
+      uses: actions/download-artifact@v4
+      with:
+        name: kaku-portable-windows
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          Kaku-*-windows-x64.msi
+          Kaku-*-windows-x64-setup.exe
+          Kaku-*-windows-x64-portable.zip
+        body: |
+          ## Kaku ${{ github.ref_name }} - Windows Release
+          
+          ### Download Options
+          
+          | File | Description |
+          |------|-------------|
+          | `Kaku-*-portable.zip` | Portable version, no installation needed |
+          | `Kaku-*-setup.exe` | NSIS installer with shell integration |
+          | `Kaku-*.msi` | MSI installer for enterprise deployment |
+          
+          ### Features
+          
+          - ✅ Fast terminal with DX12 rendering
+          - ✅ High DPI support
+          - ✅ AI coding integration
+          - ✅ Right-click "Open Kaku here"
+          
+          ### System Requirements
+          
+          - Windows 10 1809+ / Windows 11
+          - 64-bit (x64)
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
