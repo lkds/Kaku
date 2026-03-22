@@ -1,75 +1,170 @@
-//! Windows Connection implementation
+//! Windows connection and event handling
+//!
+//! Provides event loop and connection management for Windows.
 
-use crate::connection::ConnectionOps;
-use crate::screen::Screens;
-use crate::Appearance;
 use anyhow::Result;
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::rc::Rc;
-use std::sync::atomic::AtomicUsize;
+use std::sync::{Arc, Mutex};
+use std::collections::VecDeque;
+use winapi::shared::windef::HWND;
+use winapi::shared::minwindef::*;
+use winapi::um::winuser::*;
 
-use super::window::WindowInner;
+use crate::os::Event;
 
+/// Windows event handle for signaling
+pub struct EventHandle {
+    handle: HANDLE,
+}
+
+impl EventHandle {
+    /// Create a new event handle
+    pub fn new_manual_reset() -> Result<Self> {
+        unsafe {
+            let handle = CreateEventW(
+                std::ptr::null_mut(),
+                1, // Manual reset
+                0, // Initial state: not signaled
+                std::ptr::null(),
+            );
+            
+            if handle.is_null() {
+                anyhow::bail!("Failed to create event handle");
+            }
+            
+            Ok(Self { handle })
+        }
+    }
+    
+    /// Set the event (signal)
+    pub fn set_event(&self) {
+        unsafe {
+            SetEvent(self.handle);
+        }
+    }
+    
+    /// Reset the event
+    pub fn reset_event(&self) {
+        unsafe {
+            ResetEvent(self.handle);
+        }
+    }
+    
+    /// Wait for the event
+    pub fn wait(&self, timeout_ms: u32) -> bool {
+        unsafe {
+            WaitForSingleObject(self.handle, timeout_ms) == 0
+        }
+    }
+    
+    /// Get the handle
+    pub fn handle(&self) -> HANDLE {
+        self.handle
+    }
+}
+
+impl Drop for EventHandle {
+    fn drop(&mut self) {
+        unsafe {
+            if !self.handle.is_null() {
+                CloseHandle(self.handle);
+            }
+        }
+    }
+}
+
+unsafe impl Send for EventHandle {}
+unsafe impl Sync for EventHandle {}
+
+/// Connection state for a terminal session
 pub struct Connection {
-    pub(crate) windows: RefCell<HashMap<usize, Rc<RefCell<WindowInner>>>>,
-    pub(crate) next_window_id: AtomicUsize,
+    window: HWND,
+    events: Arc<Mutex<VecDeque<Event>>>,
 }
 
 impl Connection {
-    pub(crate) fn create_new() -> anyhow::Result<Self> {
+    /// Create a new connection
+    pub fn new(window: HWND) -> Result<Self> {
         Ok(Self {
-            windows: RefCell::new(HashMap::new()),
-            next_window_id: AtomicUsize::new(1),
+            window,
+            events: Arc::new(Mutex::new(VecDeque::new())),
         })
     }
-
-    pub(crate) fn next_window_id(&self) -> usize {
-        self.next_window_id
-            .fetch_add(1, ::std::sync::atomic::Ordering::Relaxed)
+    
+    /// Queue an event
+    pub fn queue_event(&self, event: Event) {
+        if let Ok(mut events) = self.events.lock() {
+            events.push_back(event);
+        }
     }
-
-    pub(crate) fn window_by_id(&self, window_id: usize) -> Option<Rc<RefCell<WindowInner>>> {
-        self.windows.borrow().get(&window_id).map(Rc::clone)
+    
+    /// Get pending events
+    pub fn drain_events(&self) -> Vec<Event> {
+        if let Ok(mut events) = self.events.lock() {
+            events.drain(..).collect()
+        } else {
+            Vec::new()
+        }
+    }
+    
+    /// Get the window handle
+    pub fn window(&self) -> HWND {
+        self.window
+    }
+    
+    /// Notify the window to repaint
+    pub fn request_redraw(&self) {
+        unsafe {
+            InvalidateRect(self.window, std::ptr::null(), 0);
+        }
+    }
+    
+    /// Show a toast notification (Windows 10+)
+    pub fn show_notification(&self, title: &str, body: &str) -> Result<()> {
+        // Use PowerShell for toast notifications on Windows
+        let script = format!(
+            r#"
+            [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
+            [Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null
+            
+            $template = @"
+            <toast>
+                <visual>
+                    <binding template='ToastText02'>
+                        <text id='1'>{}</text>
+                        <text id='2'>{}</text>
+                    </binding>
+                </visual>
+            </toast>
+"@
+            
+            $xml = New-Object Windows.Data.Xml.Dom.XmlDocument
+            $xml.LoadXml($template)
+            $toast = New-Object Windows.UI.Notifications.ToastNotification $xml
+            [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('Kaku').Show($toast)
+            "#,
+            title.replace("'", "''"),
+            body.replace("'", "''")
+        );
+        
+        std::process::Command::new("powershell")
+            .args(["-Command", &script])
+            .spawn()
+            .map(|_| ())
+            .map_err(|e| anyhow::anyhow!("Failed to show notification: {}", e))
     }
 }
 
-impl ConnectionOps for Connection {
-    fn name(&self) -> String {
-        "Windows".to_string()
-    }
-
-    fn terminate_message_loop(&self) {
-        // Post quit message
-        #[cfg(target_os = "windows")]
-        unsafe {
-            winapi::um::winuser::PostQuitMessage(0);
-        }
-    }
-
-    fn run_message_loop(&self) -> Result<()> {
-        #[cfg(target_os = "windows")]
-        {
-            use winapi::um::winuser::{GetMessageW, DispatchMessageW, TranslateMessage, MSG};
-            
-            unsafe {
-                let mut msg: MSG = std::mem::zeroed();
-                while GetMessageW(&mut msg, std::ptr::null_mut(), 0, 0) > 0 {
-                    TranslateMessage(&msg);
-                    DispatchMessageW(&msg);
-                }
-            }
-        }
-        Ok(())
-    }
-
-    fn get_appearance(&self) -> Appearance {
-        // TODO: Query Windows for dark/light mode
-        Appearance::Light
-    }
-
-    fn screens(&self) -> anyhow::Result<Screens> {
-        // TODO: Implement using EnumDisplayMonitors
-        anyhow::bail!("Screen enumeration not yet implemented on Windows")
-    }
+/// Event types for Windows
+#[derive(Debug, Clone)]
+pub enum EventType {
+    KeyPress { vk: u32, mods: u32 },
+    KeyRelease { vk: u32 },
+    Char { ch: char },
+    MouseMove { x: i32, y: i32 },
+    MousePress { button: u32, x: i32, y: i32 },
+    MouseRelease { button: u32, x: i32, y: i32 },
+    Resize { width: u32, height: u32 },
+    FocusGained,
+    FocusLost,
+    Close,
 }

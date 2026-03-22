@@ -1,19 +1,38 @@
 //! Windows-specific window and event handling
 //!
-//! This module provides Windows implementation for Kaku terminal.
+//! This module provides Windows implementation for Kaku terminal,
+//! including window management, clipboard, keyboard handling, and
+//! application lifecycle.
 
-mod connection;
-mod window;
+mod app;
+mod bitmap;
 mod clipboard;
-mod event;
+mod connection;
+mod gl;
 mod keycodes;
-mod utils;
+mod menu;
+mod window;
 
-pub use self::connection::*;
-pub use self::window::*;
-pub use self::clipboard::*;
-pub use self::event::*;
-pub use self::utils::*;
+pub use app::*;
+pub use bitmap::*;
+pub use clipboard::*;
+pub use connection::*;
+pub use gl::*;
+pub use keycodes::*;
+pub use menu::*;
+pub use window::*;
 
-// Re-export parameters
-pub use super::parameters::*;
+use std::sync::Once;
+
+static INIT: Once = Once::new();
+
+/// Initialize Windows-specific resources
+pub fn init() {
+    INIT.call_once(|| {
+        // Initialize COM for clipboard and other Windows APIs
+        #[cfg(windows)]
+        unsafe {
+            winapi::um::ole2::OleInitialize(std::ptr::null_mut());
+        }
+    });
+}
