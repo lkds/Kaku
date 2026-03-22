@@ -1,5 +1,5 @@
 // Don't create a new standard console window when launched from the windows GUI.
-#![cfg_attr(not(test), windows_subsystem = "windows")]
+#![cfg_attr(all(not(test), target_os = "windows"), windows_subsystem = "windows")]
 #![allow(clippy::cast_abs_to_unsigned)]
 #![allow(clippy::clone_on_copy)]
 #![allow(clippy::collapsible_else_if)]
