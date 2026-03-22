@@ -59,7 +59,21 @@ plist.workspace = true
 shlex.workspace = true
 
 [target.'cfg(target_os="windows")'.dependencies]
-winapi = { workspace = true, features = ["winuser", "windef"] }
+parking_lot.workspace = true
+winapi = { workspace = true, features = [
+    "winuser",
+    "windef",
+    "wingdi",
+    "winbase",
+    "minwinbase",
+    "errhandlingapi",
+    "libloaderapi",
+    "dwmapi",
+    "ole2",
+    "shellapi",
+    "handleapi",
+    "synchapi",
+] }
 
 [target.'cfg(all(unix, not(target_os="macos")))'.dependencies]
 filedescriptor.workspace = true

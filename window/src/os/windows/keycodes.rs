@@ -2,7 +2,8 @@
 //!
 //! Maps Windows VK_* codes to Kaku's internal Key representation.
 
-use config::keyassignment::Key;
+use config::keys::Key;
+use wezterm_input_types::Modifiers;
 use winapi::um::winuser::*;
 
 /// Convert Windows virtual key code to Kaku Key
@@ -86,8 +87,7 @@ pub fn vk_to_key(vk: u32) -> Option<Key> {
 }
 
 /// Get modifier state from Windows keyboard state
-pub fn get_modifiers() -> config::keyassignment::Modifiers {
-    use config::keyassignment::Modifiers;
+pub fn get_modifiers() -> Modifiers {
     use winapi::um::winuser::GetKeyState;
     
     let mut mods = Modifiers::NONE;
