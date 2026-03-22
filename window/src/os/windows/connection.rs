@@ -9,7 +9,20 @@ use winapi::shared::windef::HWND;
 use winapi::shared::minwindef::*;
 use winapi::um::winuser::*;
 
-use crate::os::Event;
+/// Event types for Windows
+#[derive(Debug, Clone)]
+pub enum Event {
+    KeyPress { vk: u32, mods: u32 },
+    KeyRelease { vk: u32 },
+    Char { ch: char },
+    MouseMove { x: i32, y: i32 },
+    MousePress { button: u32, x: i32, y: i32 },
+    MouseRelease { button: u32, x: i32, y: i32 },
+    Resize { width: u32, height: u32 },
+    FocusGained,
+    FocusLost,
+    Close,
+}
 
 /// Windows event handle for signaling
 pub struct EventHandle {
@@ -152,19 +165,4 @@ impl Connection {
             .map(|_| ())
             .map_err(|e| anyhow::anyhow!("Failed to show notification: {}", e))
     }
-}
-
-/// Event types for Windows
-#[derive(Debug, Clone)]
-pub enum EventType {
-    KeyPress { vk: u32, mods: u32 },
-    KeyRelease { vk: u32 },
-    Char { ch: char },
-    MouseMove { x: i32, y: i32 },
-    MousePress { button: u32, x: i32, y: i32 },
-    MouseRelease { button: u32, x: i32, y: i32 },
-    Resize { width: u32, height: u32 },
-    FocusGained,
-    FocusLost,
-    Close,
 }
