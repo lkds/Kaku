@@ -1,5 +1,6 @@
 //! Windows Event Handle for spawn queue
 
+use std::result::Result;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 pub struct EventHandle {

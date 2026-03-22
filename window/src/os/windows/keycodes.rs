@@ -1,6 +1,6 @@
 //! Windows Virtual Key code mappings
 
-use wezterm_input_types::KeyCode;
+use crate::KeyCode;
 
 /// Convert a Windows Virtual Key code to KeyCode
 pub fn vkey_to_keycode(_vkey: u16) -> Option<KeyCode> {

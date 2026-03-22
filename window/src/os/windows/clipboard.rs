@@ -1,5 +1,7 @@
 //! Windows Clipboard implementation
 
+use std::result::Result;
+
 pub struct Clipboard;
 
 impl Clipboard {

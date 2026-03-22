@@ -16,7 +16,6 @@ use raw_window_handle::{
 use std::any::Any;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::ptr::NonNull;
 
 pub struct WindowInner {
     pub(crate) hwnd: Option<usize>, // HWND as usize
