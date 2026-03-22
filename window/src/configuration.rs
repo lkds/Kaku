@@ -1,5 +1,5 @@
 pub(crate) fn prefer_swrast() -> bool {
-    #[cfg(windows)]
+    #[cfg(target_os = "windows")]
     {
         if crate::os::windows::is_running_in_rdp_session() {
             // Using OpenGL in RDP has problematic behavior upon
