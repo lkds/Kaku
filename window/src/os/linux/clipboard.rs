@@ -1,5 +1,7 @@
 //! Linux Clipboard implementation (Stub)
 
+use std::result::Result;
+
 pub struct Clipboard;
 
 impl Clipboard {

@@ -274,8 +274,8 @@ wezterm-term = { path = "term" }
 wezterm-toast-notification = { path = "crates/wezterm-toast-notification" }
 wezterm-uds = { path = "crates/wezterm-uds" }
 wezterm-version = { path = "crates/wezterm-version" }
-# Cross-platform GPU backends: Metal for macOS, DX12 for Windows
-wgpu = { version = "25.0.2", default-features = false, features = ["metal", "dx12", "wgsl"] }
+# Cross-platform GPU backends: Metal for macOS, DX12 for Windows, GL for Linux
+wgpu = { version = "25.0.2", default-features = false, features = ["metal", "dx12", "gl", "wgsl"] }
 whoami = "1.5"
 winapi = "0.3.9"
 window = {path="window"}

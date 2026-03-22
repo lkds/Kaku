@@ -1,5 +1,6 @@
 //! Linux Event Handle for spawn queue (Stub)
 
+use std::result::Result;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 pub struct EventHandle {
@@ -19,5 +20,9 @@ impl EventHandle {
 
     pub fn reset_event(&self) {
         self.signaled.store(false, Ordering::Release);
+    }
+
+    pub fn is_signaled(&self) -> bool {
+        self.signaled.load(Ordering::Acquire)
     }
 }

@@ -50,7 +50,7 @@ impl Window {
         _class_name: &str,
         _name: &str,
         geometry: RequestedWindowGeometry,
-        config: Option<&config::ConfigHandle>,
+        _config: Option<&config::ConfigHandle>,
         _font_config: Rc<wezterm_font::FontConfiguration>,
         event_handler: F,
     ) -> Result<Window>

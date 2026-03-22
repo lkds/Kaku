@@ -16,7 +16,6 @@ use raw_window_handle::{
 use std::any::Any;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::ptr::NonNull;
 
 pub struct WindowInner {
     event_sender: RefCell<Option<WindowEventSender>>,
@@ -47,7 +46,7 @@ impl Window {
         _class_name: &str,
         _name: &str,
         geometry: RequestedWindowGeometry,
-        config: Option<&config::ConfigHandle>,
+        _config: Option<&config::ConfigHandle>,
         _font_config: Rc<wezterm_font::FontConfiguration>,
         event_handler: F,
     ) -> Result<Window>
