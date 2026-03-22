@@ -1,0 +1,139 @@
+name: Windows Build
+
+on:
+  push:
+    branches: [ main, master, windows-support ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  build-windows:
+    name: Build on Windows
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: x86_64-pc-windows-msvc
+    
+    - name: Cache cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+    
+    - name: Install LLVM and Clang
+      uses: KyleMayes/install-llvm-action@v1
+      with:
+        version: "17.0"
+    
+    - name: Set up MSVC environment
+      uses: ilammy/msvc-dev-cmd@v1
+    
+    - name: Build kaku CLI
+      run: cargo build --release --package kaku
+    
+    - name: Build kaku-gui
+      run: cargo build --release --package kaku-gui
+    
+    - name: Run tests
+      run: cargo test --release --no-fail-fast -- --test-threads=1
+      continue-on-error: true
+    
+    - name: Upload kaku.exe artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: kaku-cli-windows
+        path: target/release/kaku.exe
+        retention-days: 7
+    
+    - name: Upload kaku-gui.exe artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: kaku-gui-windows
+        path: target/release/kaku-gui.exe
+        retention-days: 7
+
+  # Cross-compile check on Linux (faster feedback)
+  check-windows-cross:
+    name: Cross-compile check (Linux)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: x86_64-pc-windows-gnu
+    
+    - name: Install cross-compilation tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y mingw-w64
+        sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
+        sudo update-alternatives --set x86_64-w64-mingw32-g++ /usr/bin/x86_64-w64-mingw32-g++-posix
+    
+    - name: Cache cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cross-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cross-cargo-
+    
+    - name: Check compilation (kaku CLI only)
+      run: cargo check --target x86_64-pc-windows-gnu --package kaku
+      continue-on-error: true
+    
+    - name: Check compilation (kaku-gui)
+      run: cargo check --target x86_64-pc-windows-gnu --package kaku-gui
+      continue-on-error: true
+
+  # Lint and format check
+  lint:
+    name: Lint and Format
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+    
+    - name: Check formatting
+      run: cargo fmt --all -- --check
+      continue-on-error: true
+    
+    - name: Run clippy
+      run: cargo clippy --all-targets --all-features -- -D warnings
+      continue-on-error: true
