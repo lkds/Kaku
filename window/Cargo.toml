@@ -58,22 +58,33 @@ objc2-core-graphics.workspace = true
 plist.workspace = true
 shlex.workspace = true
 
-[target.'cfg(target_os="windows")'.dependencies]
+[target."cfg(windows)".dependencies]
+clipboard-win.workspace = true
+shared_library.workspace = true
 parking_lot.workspace = true
-winapi = { workspace = true, features = [
+winapi = { workspace=true, features = [
+    "dwmapi",
+    "handleapi",
+    "imm",
+    "libloaderapi",
+    "shellscalingapi",
+    "synchapi",
+    "sysinfoapi",
+    "winerror",
     "winuser",
     "windef",
     "wingdi",
     "winbase",
     "minwinbase",
     "errhandlingapi",
-    "libloaderapi",
-    "dwmapi",
     "ole2",
     "shellapi",
-    "handleapi",
-    "synchapi",
-] }
+]}
+windows = { workspace=true, features = [
+    "UI_ViewManagement",
+    "Win32_Devices_Display",
+]}
+winreg.workspace = true
 
 [target.'cfg(all(unix, not(target_os="macos")))'.dependencies]
 filedescriptor.workspace = true

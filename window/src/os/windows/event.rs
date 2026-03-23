@@ -1,30 +1,39 @@
-//! Windows Event Handle for spawn queue
+use std::io::Error as IoError;
+use std::ptr::{null, null_mut};
+use winapi::um::handleapi::CloseHandle;
+use winapi::um::synchapi::{CreateEventW, ResetEvent, SetEvent};
+use winapi::um::winnt::HANDLE;
 
-use std::result::Result;
-use std::sync::atomic::{AtomicBool, Ordering};
+pub struct EventHandle(pub HANDLE);
+unsafe impl Send for EventHandle {}
+unsafe impl Sync for EventHandle {}
 
-pub struct EventHandle {
-    signaled: AtomicBool,
-    manual_reset: bool,
+impl Drop for EventHandle {
+    fn drop(&mut self) {
+        unsafe {
+            CloseHandle(self.0);
+        }
+    }
 }
 
 impl EventHandle {
-    pub fn new_manual_reset() -> Result<Self, ()> {
-        Ok(Self {
-            signaled: AtomicBool::new(false),
-            manual_reset: true,
-        })
+    pub fn new_manual_reset() -> anyhow::Result<Self> {
+        let handle = unsafe { CreateEventW(null_mut(), 1, 0, null()) };
+        if handle.is_null() {
+            return Err(IoError::last_os_error().into());
+        }
+        Ok(Self(handle))
     }
 
     pub fn set_event(&self) {
-        self.signaled.store(true, Ordering::Release);
+        unsafe {
+            SetEvent(self.0);
+        }
     }
 
     pub fn reset_event(&self) {
-        self.signaled.store(false, Ordering::Release);
-    }
-
-    pub fn is_signaled(&self) -> bool {
-        self.signaled.load(Ordering::Acquire)
+        unsafe {
+            ResetEvent(self.0);
+        }
     }
 }

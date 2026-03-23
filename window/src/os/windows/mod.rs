@@ -1,50 +1,55 @@
-//! Windows-specific window and event handling
-//!
-//! This module provides Windows implementation for Kaku terminal.
-
-mod app;
-mod bitmap;
-mod clipboard;
-mod connection;
-mod event;
+pub mod connection;
+pub mod event;
+mod extra_constants;
 mod keycodes;
-mod menu;
-mod window;
+mod wgl;
+pub mod window;
 
-pub use app::*;
-pub use bitmap::*;
-pub use clipboard::*;
+pub use self::window::*;
 pub use connection::*;
 pub use event::*;
-pub use keycodes::*;
-pub use menu::*;
-pub use window::*;
 
-use std::sync::Once;
+/// Convert a rust string to a windows wide string
+pub fn wide_string(s: &str) -> Vec<u16> {
+    use std::os::windows::ffi::OsStrExt;
+    std::ffi::OsStr::new(s)
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect()
+}
 
-static INIT: Once = Once::new();
+/// Returns true if we are running in an RDP session.
+/// See <https://docs.microsoft.com/en-us/windows/win32/termserv/detecting-the-terminal-services-environment>
+pub fn is_running_in_rdp_session() -> bool {
+    use winapi::shared::minwindef::DWORD;
+    use winapi::um::processthreadsapi::{GetCurrentProcessId, ProcessIdToSessionId};
+    use winapi::um::winuser::{GetSystemMetrics, SM_REMOTESESSION};
+    use winreg::enums::HKEY_LOCAL_MACHINE;
+    use winreg::RegKey;
 
-/// Initialize Windows-specific resources
-pub fn init() {
-    INIT.call_once(|| {
-        // Initialize COM for clipboard and other Windows APIs
-        #[cfg(target_os = "windows")]
-        unsafe {
-            winapi::um::ole2::OleInitialize(std::ptr::null_mut());
+    if unsafe { GetSystemMetrics(SM_REMOTESESSION) } != 0 {
+        return true;
+    }
+
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    let terminal_server =
+        match hklm.open_subkey("SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\") {
+            Ok(k) => k,
+            Err(_) => return false,
+        };
+
+    let glass_session_id: DWORD = match terminal_server.get_value("GlassSessionId") {
+        Ok(sess) => sess,
+        Err(_) => return false,
+    };
+
+    unsafe {
+        let mut current_session = 0;
+        if ProcessIdToSessionId(GetCurrentProcessId(), &mut current_session) != 0 {
+            // If we're not the glass session then we're a remote session
+            current_session != glass_session_id
+        } else {
+            false
         }
-    });
-}
-
-/// Check if running in a Remote Desktop Protocol session
-#[cfg(target_os = "windows")]
-pub fn is_running_in_rdp_session() -> bool {
-    use winapi::um::winuser::GetSystemMetrics;
-    use winapi::um::winuser::SM_REMOTESESSION;
-    unsafe { GetSystemMetrics(SM_REMOTESESSION) != 0 }
-}
-
-/// Check if running in a Remote Desktop Protocol session (stub for non-Windows)
-#[cfg(not(target_os = "windows"))]
-pub fn is_running_in_rdp_session() -> bool {
-    false
+    }
 }
