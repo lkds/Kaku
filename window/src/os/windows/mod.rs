@@ -26,3 +26,17 @@ pub fn init() {
         }
     });
 }
+
+/// Check if running in a Remote Desktop Protocol session
+#[cfg(target_os = "windows")]
+pub fn is_running_in_rdp_session() -> bool {
+    use winapi::um::winuser::GetSystemMetrics;
+    use winapi::um::winuser::SM_REMOTESESSION;
+    unsafe { GetSystemMetrics(SM_REMOTESESSION) != 0 }
+}
+
+/// Check if running in a Remote Desktop Protocol session (stub for non-Windows)
+#[cfg(not(target_os = "windows"))]
+pub fn is_running_in_rdp_session() -> bool {
+    false
+}
