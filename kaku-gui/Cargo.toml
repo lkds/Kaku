@@ -29,7 +29,7 @@ dhat-ad-hoc = ["dhat"]  # if you are doing ad hoc profiling
 [build-dependencies]
 anyhow.workspace = true
 
-[target.'cfg(windows)'.build-dependencies]
+[target.'cfg(target_os="windows")'.build-dependencies]
 cc.workspace = true
 embed-resource.workspace = true
 
@@ -102,7 +102,7 @@ window.workspace = true
 [target.'cfg(target_os="macos")'.dependencies]
 cocoa.workspace = true
 
-[target.'cfg(windows)'.dependencies]
+[target.'cfg(target_os="windows")'.dependencies]
 shared_library.workspace = true
 winapi = { workspace=true, features = [
     "winuser",
