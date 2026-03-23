@@ -79,6 +79,8 @@ winapi = { workspace=true, features = [
     "errhandlingapi",
     "ole2",
     "shellapi",
+    "processthreadsapi",
+    "minwindef",
 ]}
 windows = { workspace=true, features = [
     "UI_ViewManagement",
