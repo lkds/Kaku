@@ -2,11 +2,14 @@
 //!
 //! Maps Windows VK_* codes to Kaku's internal Key representation.
 
-use config::keyassignment::Key;
-use winapi::um::winuser::*;
+use config::keys::Key;
+use wezterm_input_types::Modifiers;
 
 /// Convert Windows virtual key code to Kaku Key
+#[cfg(target_os = "windows")]
 pub fn vk_to_key(vk: u32) -> Option<Key> {
+    use winapi::um::winuser::*;
+    
     // Standard ASCII printable characters
     if (0x30..=0x39).contains(&vk) {
         // 0-9
@@ -85,10 +88,16 @@ pub fn vk_to_key(vk: u32) -> Option<Key> {
     Some(key)
 }
 
+/// Stub for non-Windows platforms
+#[cfg(not(target_os = "windows"))]
+pub fn vk_to_key(_vk: u32) -> Option<Key> {
+    None
+}
+
 /// Get modifier state from Windows keyboard state
-pub fn get_modifiers() -> config::keyassignment::Modifiers {
-    use config::keyassignment::Modifiers;
-    use winapi::um::winuser::GetKeyState;
+#[cfg(target_os = "windows")]
+pub fn get_modifiers() -> Modifiers {
+    use winapi::um::winuser::{GetKeyState, VK_SHIFT, VK_CONTROL, VK_MENU, VK_LWIN, VK_RWIN};
     
     let mut mods = Modifiers::NONE;
     
@@ -108,4 +117,10 @@ pub fn get_modifiers() -> config::keyassignment::Modifiers {
     }
     
     mods
+}
+
+/// Stub for non-Windows platforms
+#[cfg(not(target_os = "windows"))]
+pub fn get_modifiers() -> Modifiers {
+    Modifiers::NONE
 }
