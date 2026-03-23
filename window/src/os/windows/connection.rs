@@ -14,6 +14,18 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use super::window::WindowInner;
 
+/// Origin of quit request
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum QuitOrigin {
+    UserRequested,
+    SystemRequested,
+}
+
+/// Request application termination
+pub fn request_terminate(_origin: QuitOrigin) {
+    // TODO: Implement Windows termination
+}
+
 /// Connection state for the Windows application
 pub struct Connection {
     pub(crate) windows: RefCell<HashMap<usize, Rc<RefCell<WindowInner>>>>,

@@ -2,17 +2,22 @@
 //!
 //! This module provides Windows implementation for Kaku terminal.
 
+mod app;
+mod bitmap;
+mod clipboard;
 mod connection;
 mod event;
 mod keycodes;
+mod menu;
 mod window;
 
-pub mod bitmap;
-pub mod clipboard;
-
+pub use app::*;
+pub use bitmap::*;
+pub use clipboard::*;
 pub use connection::*;
 pub use event::*;
 pub use keycodes::*;
+pub use menu::*;
 pub use window::*;
 
 use std::sync::Once;
