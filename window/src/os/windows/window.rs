@@ -141,3 +141,7 @@ impl WindowOps for Window {
 
     fn set_clipboard(&self, _clipboard: crate::Clipboard, _text: String) {}
 }
+
+// Window is just an ID, so it's safe to send across threads
+unsafe impl Send for Window {}
+unsafe impl Sync for Window {}
