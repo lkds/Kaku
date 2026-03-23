@@ -873,10 +873,9 @@ fn run() -> anyhow::Result<()> {
     #[cfg(target_os = "windows")]
     {
         unsafe {
-            ::windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID(
+            let _ = ::windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID(
                 ::windows::core::PCWSTR(wide_string("sh.kaku.Kaku").as_ptr()),
-            )
-            .unwrap();
+            );
         }
     }
 
