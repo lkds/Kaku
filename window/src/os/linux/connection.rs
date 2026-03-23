@@ -2,6 +2,7 @@
 
 use crate::connection::ConnectionOps;
 use crate::screen::Screens;
+use crate::spawn::SPAWN_QUEUE;
 use crate::Appearance;
 use anyhow::Result;
 use std::cell::RefCell;
@@ -21,6 +22,9 @@ pub struct Connection {
 impl Connection {
     /// Create a new connection instance
     pub(crate) fn create_new() -> Result<Self> {
+        // Ensure SPAWN_QUEUE is created
+        SPAWN_QUEUE.run();
+        
         Ok(Self {
             windows: RefCell::new(HashMap::new()),
             next_window_id: AtomicUsize::new(1),
