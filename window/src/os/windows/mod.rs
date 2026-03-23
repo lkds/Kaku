@@ -1,15 +1,39 @@
 //! Windows-specific window and event handling
 //!
-//! This module provides Windows implementation for Kaku terminal.
+//! This module provides Windows implementation for Kaku terminal,
+//! including window management, clipboard, keyboard handling, and
+//! application lifecycle.
 
+#[cfg(target_os = "windows")]
+mod app;
+#[cfg(target_os = "windows")]
+mod bitmap;
+#[cfg(target_os = "windows")]
+mod clipboard;
+#[cfg(target_os = "windows")]
 mod connection;
-mod event;
+#[cfg(target_os = "windows")]
+mod gl;
 mod keycodes;
+#[cfg(target_os = "windows")]
+mod menu;
+#[cfg(target_os = "windows")]
 mod window;
 
+#[cfg(target_os = "windows")]
+pub use app::*;
+#[cfg(target_os = "windows")]
+pub use bitmap::*;
+#[cfg(target_os = "windows")]
+pub use clipboard::*;
+#[cfg(target_os = "windows")]
 pub use connection::*;
-pub use event::*;
+#[cfg(target_os = "windows")]
+pub use gl::*;
 pub use keycodes::*;
+#[cfg(target_os = "windows")]
+pub use menu::*;
+#[cfg(target_os = "windows")]
 pub use window::*;
 
 use std::sync::Once;
