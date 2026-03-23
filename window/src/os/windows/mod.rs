@@ -7,6 +7,9 @@ mod event;
 mod keycodes;
 mod window;
 
+pub mod bitmap;
+pub mod clipboard;
+
 pub use connection::*;
 pub use event::*;
 pub use keycodes::*;
