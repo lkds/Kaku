@@ -81,6 +81,9 @@ winapi = { workspace=true, features = [
     "shellapi",
     "processthreadsapi",
     "minwindef",
+    "ntdef",
+    "winnt",
+    "uxtheme",
 ]}
 windows = { workspace=true, features = [
     "UI_ViewManagement",
