@@ -19,6 +19,32 @@ use crate::{
 use crate::connection::ConnectionOps;
 use config::ConfigHandle;
 
+/// Backend implementation type (stub for Windows)
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BackendImpl {
+    Gl,
+}
+
+/// GL context pair (stub for Windows)
+#[derive(Debug)]
+pub struct GlContextPair {
+    pub backend: BackendImpl,
+}
+
+impl GlContextPair {
+    pub fn new() -> Self {
+        Self {
+            backend: BackendImpl::Gl,
+        }
+    }
+}
+
+impl Default for GlContextPair {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Window inner state - stored in Connection's windows HashMap
 pub(crate) struct WindowInner {
     #[allow(dead_code)]
