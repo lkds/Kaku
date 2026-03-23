@@ -5,18 +5,12 @@
 
 use anyhow::Result;
 use async_trait::async_trait;
-use log::debug;
-use parking_lot::RwLock;
 use promise::Future;
 use std::any::Any;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
-use winapi::shared::windef::{HWND, HDC};
-use winapi::shared::minwindef::*;
-use winapi::um::winuser::*;
 
-use crate::os::parameters::*;
 use crate::{
     Clipboard, ClipboardData, Connection, Dimensions, MouseCursor,
     Point, ScreenPoint, Rect, ResizeIncrement, RequestedWindowGeometry,
@@ -26,10 +20,18 @@ use crate::{
 use crate::connection::ConnectionOps;
 use config::ConfigHandle;
 
+/// Platform-specific window handle
+#[cfg(target_os = "windows")]
+type WindowHandle = winapi::shared::windef::HWND;
+
+/// Platform-specific window handle (stub for non-Windows)
+#[cfg(not(target_os = "windows"))]
+type WindowHandle = *mut std::ffi::c_void;
+
 /// Window inner state - stored in Connection's windows HashMap
 pub(crate) struct WindowInner {
-    pub(crate) hwnd: HWND,
-    pub(crate) hdc: HDC,
+    #[allow(dead_code)]
+    pub(crate) hwnd: WindowHandle,
     event_sender: RefCell<Option<WindowEventSender>>,
     title: RefCell<String>,
 }
@@ -46,7 +48,6 @@ impl WindowInner {
     pub fn new() -> Self {
         Self {
             hwnd: std::ptr::null_mut(),
-            hdc: std::ptr::null_mut(),
             event_sender: RefCell::new(None),
             title: RefCell::new(String::new()),
         }
@@ -89,7 +90,7 @@ impl Window {
         // Register with connection
         conn.windows.borrow_mut().insert(window_id, inner);
 
-        // TODO: Create actual Win32 window
+        // TODO: Create actual Win32 window on Windows
 
         Ok(window)
     }

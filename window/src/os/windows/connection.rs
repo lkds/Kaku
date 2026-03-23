@@ -10,77 +10,8 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use winapi::shared::windef::HWND;
-use winapi::shared::minwindef::*;
-use winapi::um::winuser::*;
-use winapi::um::handleapi::CloseHandle;
-use winapi::um::synchapi::{CreateEventW, SetEvent, ResetEvent, WaitForSingleObject};
 
 use super::window::WindowInner;
-
-/// Windows event handle for signaling
-pub struct EventHandle {
-    handle: HANDLE,
-}
-
-impl EventHandle {
-    /// Create a new event handle
-    pub fn new_manual_reset() -> Result<Self> {
-        unsafe {
-            let handle = CreateEventW(
-                std::ptr::null_mut(),
-                1, // Manual reset
-                0, // Initial state: not signaled
-                std::ptr::null(),
-            );
-            
-            if handle.is_null() {
-                anyhow::bail!("Failed to create event handle");
-            }
-            
-            Ok(Self { handle })
-        }
-    }
-    
-    /// Set the event (signal)
-    pub fn set_event(&self) {
-        unsafe {
-            SetEvent(self.handle);
-        }
-    }
-    
-    /// Reset the event
-    pub fn reset_event(&self) {
-        unsafe {
-            ResetEvent(self.handle);
-        }
-    }
-    
-    /// Wait for the event
-    pub fn wait(&self, timeout_ms: u32) -> bool {
-        unsafe {
-            WaitForSingleObject(self.handle, timeout_ms) == 0
-        }
-    }
-    
-    /// Get the handle
-    pub fn handle(&self) -> HANDLE {
-        self.handle
-    }
-}
-
-impl Drop for EventHandle {
-    fn drop(&mut self) {
-        unsafe {
-            if !self.handle.is_null() {
-                CloseHandle(self.handle);
-            }
-        }
-    }
-}
-
-unsafe impl Send for EventHandle {}
-unsafe impl Sync for EventHandle {}
 
 /// Connection state for the Windows application
 pub struct Connection {
@@ -111,6 +42,7 @@ impl Connection {
     }
 }
 
+#[cfg(target_os = "windows")]
 impl ConnectionOps for Connection {
     fn name(&self) -> String {
         "Windows".to_string()
@@ -119,11 +51,13 @@ impl ConnectionOps for Connection {
     fn terminate_message_loop(&self) {
         *self.running.borrow_mut() = false;
         unsafe {
-            PostQuitMessage(0);
+            winapi::um::winuser::PostQuitMessage(0);
         }
     }
 
     fn run_message_loop(&self) -> Result<()> {
+        use winapi::um::winuser::{GetMessageW, TranslateMessage, DispatchMessageW, MSG, WM_QUIT};
+        
         *self.running.borrow_mut() = true;
         
         unsafe {
@@ -152,7 +86,6 @@ impl ConnectionOps for Connection {
 
     fn get_appearance(&self) -> Appearance {
         // TODO: Query Windows for dark/light mode
-        // For now, default to Light
         Appearance::Light
     }
 
@@ -164,5 +97,33 @@ impl ConnectionOps for Connection {
     fn default_dpi(&self) -> f64 {
         // TODO: Query actual DPI from Windows
         crate::DEFAULT_DPI
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+impl ConnectionOps for Connection {
+    fn name(&self) -> String {
+        "Windows (stub)".to_string()
+    }
+
+    fn terminate_message_loop(&self) {
+        *self.running.borrow_mut() = false;
+    }
+
+    fn run_message_loop(&self) -> Result<()> {
+        // Stub: just spin
+        *self.running.borrow_mut() = true;
+        while *self.running.borrow() {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+        Ok(())
+    }
+
+    fn get_appearance(&self) -> Appearance {
+        Appearance::Light
+    }
+
+    fn screens(&self) -> anyhow::Result<Screens> {
+        anyhow::bail!("Screen enumeration not available")
     }
 }

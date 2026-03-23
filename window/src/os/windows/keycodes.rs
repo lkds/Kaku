@@ -4,10 +4,12 @@
 
 use config::keys::Key;
 use wezterm_input_types::Modifiers;
-use winapi::um::winuser::*;
 
 /// Convert Windows virtual key code to Kaku Key
+#[cfg(target_os = "windows")]
 pub fn vk_to_key(vk: u32) -> Option<Key> {
+    use winapi::um::winuser::*;
+    
     // Standard ASCII printable characters
     if (0x30..=0x39).contains(&vk) {
         // 0-9
@@ -86,9 +88,16 @@ pub fn vk_to_key(vk: u32) -> Option<Key> {
     Some(key)
 }
 
+/// Stub for non-Windows platforms
+#[cfg(not(target_os = "windows"))]
+pub fn vk_to_key(_vk: u32) -> Option<Key> {
+    None
+}
+
 /// Get modifier state from Windows keyboard state
+#[cfg(target_os = "windows")]
 pub fn get_modifiers() -> Modifiers {
-    use winapi::um::winuser::GetKeyState;
+    use winapi::um::winuser::{GetKeyState, VK_SHIFT, VK_CONTROL, VK_MENU, VK_LWIN, VK_RWIN};
     
     let mut mods = Modifiers::NONE;
     
@@ -108,4 +117,10 @@ pub fn get_modifiers() -> Modifiers {
     }
     
     mods
+}
+
+/// Stub for non-Windows platforms
+#[cfg(not(target_os = "windows"))]
+pub fn get_modifiers() -> Modifiers {
+    Modifiers::NONE
 }
