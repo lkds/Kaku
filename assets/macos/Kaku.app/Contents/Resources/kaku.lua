@@ -4,6 +4,17 @@ local wezterm = require 'wezterm'
 
 local config = {}
 
+-- Platform detection for cross-platform keybindings
+local is_windows = wezterm.target_triple:find('windows') ~= nil
+local is_macos = wezterm.target_triple:find('apple') ~= nil
+
+-- Modifier key mapping: CMD on macOS, CTRL on Windows
+local MOD = is_macos and 'CMD' or 'CTRL'
+local MOD_SHIFT = is_macos and 'CMD|SHIFT' or 'CTRL|SHIFT'
+local MOD_CTRL = is_macos and 'CMD|CTRL' or 'CTRL|SHIFT'
+local MOD_OPT = is_macos and 'OPT' or 'ALT'
+local MOD_CMD_OPT = is_macos and 'CMD|OPT' or 'CTRL|ALT'
+
 -- `config_builder` validates every assignment and is expensive on large configs.
 -- Keep startup fast by default; enable strict validation only when debugging config.
 if os.getenv('KAKU_STRICT_CONFIG') == '1' and wezterm.config_builder then
@@ -3260,16 +3271,23 @@ local user_shell = os.getenv('SHELL')
 if user_shell and #user_shell > 0 then
   config.default_prog = { user_shell, '-l' }
 else
-  config.default_prog = { '/bin/zsh', '-l' }
+  -- On Windows, use PowerShell or cmd
+  if is_windows then
+    config.default_prog = { 'powershell.exe', '-NoLogo' }
+  else
+    config.default_prog = { '/bin/zsh', '-l' }
+  end
 end
 
--- ===== macOS Specific =====
--- Keep Left Option as Meta so Alt-based Vim/Neovim keybindings work reliably.
-config.send_composed_key_when_left_alt_is_pressed = false
--- Keep Right Option available for composing locale/symbol characters.
-config.send_composed_key_when_right_alt_is_pressed = true
-config.native_macos_fullscreen_mode = true
-config.quit_when_all_windows_are_closed = false
+-- ===== Platform Specific =====
+if is_macos then
+  -- Keep Left Option as Meta so Alt-based Vim/Neovim keybindings work reliably.
+  config.send_composed_key_when_left_alt_is_pressed = false
+  -- Keep Right Option available for composing locale/symbol characters.
+  config.send_composed_key_when_right_alt_is_pressed = true
+  config.native_macos_fullscreen_mode = true
+  config.quit_when_all_windows_are_closed = false
+end
 
 -- ===== Key Bindings =====
 config.keys = {
@@ -3277,7 +3295,7 @@ config.keys = {
   -- Cmd+K: clear screen + scrollback
   {
     key = 'k',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.Multiple({
       wezterm.action.SendKey({ key = 'l', mods = 'CTRL' }),
       wezterm.action.ClearScrollback('ScrollbackAndViewport'),
@@ -3287,7 +3305,7 @@ config.keys = {
   -- Compatibility: keep Cmd+R for existing muscle memory
   {
     key = 'r',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.Multiple({
       wezterm.action.SendKey({ key = 'l', mods = 'CTRL' }),
       wezterm.action.ClearScrollback('ScrollbackAndViewport'),
@@ -3297,14 +3315,14 @@ config.keys = {
   -- Cmd+Q: quit
   {
     key = 'q',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.QuitApplication,
   },
 
   -- Cmd+N: new window
   {
     key = 'n',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.SpawnWindow,
   },
 
@@ -3312,7 +3330,7 @@ config.keys = {
   -- Cmd+W: close pane > close tab > hide app
   {
     key = 'w',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action_callback(function(win, pane)
       local mux_win = win:mux_window()
       local tabs = mux_win and mux_win:tabs() or {}
@@ -3334,7 +3352,7 @@ config.keys = {
   -- Cmd+Shift+W: close current tab
   {
     key = 'w',
-    mods = 'CMD|SHIFT',
+    mods = MOD_SHIFT,
     action = wezterm.action.CloseCurrentTab({ confirm = config.tab_close_confirmation }),
   },
 
@@ -3342,42 +3360,42 @@ config.keys = {
   -- Cmd+T: new tab
   {
     key = 't',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.SpawnTab('CurrentPaneDomain'),
   },
 
   -- Cmd+Shift+A: open Kaku AI settings in current pane
   {
     key = 'A',
-    mods = 'CMD|SHIFT',
+    mods = MOD_SHIFT,
     action = wezterm.action.EmitEvent('run-kaku-ai-config'),
   },
 
   -- Cmd+Shift+E: apply latest Kaku Assistant suggestion for the active pane
   {
     key = 'E',
-    mods = 'CMD|SHIFT',
+    mods = MOD_SHIFT,
     action = wezterm.action.EmitEvent('kaku-ai-apply-last-fix'),
   },
 
   -- Cmd+Shift+G: launch lazygit in current pane
   {
     key = 'G',
-    mods = 'CMD|SHIFT',
+    mods = MOD_SHIFT,
     action = wezterm.action.EmitEvent('kaku-launch-lazygit'),
   },
 
   -- Cmd+Shift+Y: launch yazi in current pane
   {
     key = 'Y',
-    mods = 'CMD|SHIFT',
+    mods = MOD_SHIFT,
     action = wezterm.action.EmitEvent('kaku-launch-yazi'),
   },
 
   -- Cmd+Shift+R: open the current SSH domain in a local yazi tab via sshfs
   {
     key = 'R',
-    mods = 'CMD|SHIFT',
+    mods = MOD_SHIFT,
     action = wezterm.action.EmitEvent('kaku-open-remote-files'),
   },
 
@@ -3385,21 +3403,21 @@ config.keys = {
   -- Cmd+Ctrl+F: toggle fullscreen
   {
     key = 'f',
-    mods = 'CMD|CTRL',
+    mods = MOD_CTRL,
     action = wezterm.action.ToggleFullScreen,
   },
 
   -- Cmd+M: minimize window
   {
     key = 'm',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.Hide,
   },
 
   -- Cmd+H: hide application
   {
     key = 'h',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.HideApplication,
   },
 
@@ -3407,17 +3425,17 @@ config.keys = {
   -- Cmd+Equal/Minus/0: adjust font size
   {
     key = '=',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.IncreaseFontSize,
   },
   {
     key = '-',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.DecreaseFontSize,
   },
   {
     key = '0',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.ResetFontSize,
   },
 
@@ -3425,38 +3443,38 @@ config.keys = {
   -- Alt+Left / Alt+Right: word jump
   {
     key = 'LeftArrow',
-    mods = 'OPT',
+    mods = MOD_OPT,
     action = wezterm.action.SendKey({ key = 'b', mods = 'ALT' }),
   },
   {
     key = 'RightArrow',
-    mods = 'OPT',
+    mods = MOD_OPT,
     action = wezterm.action.SendKey({ key = 'f', mods = 'ALT' }),
   },
 
   -- Cmd+Left / Cmd+Right: line start/end
   {
     key = 'LeftArrow',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.SendKey({ key = 'a', mods = 'CTRL' }),
   },
   {
     key = 'RightArrow',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.SendKey({ key = 'e', mods = 'CTRL' }),
   },
 
   -- Cmd+Backspace: delete to line start
   {
     key = 'Backspace',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.SendKey({ key = 'u', mods = 'CTRL' }),
   },
 
   -- Alt+Backspace: delete word
   {
     key = 'Backspace',
-    mods = 'OPT',
+    mods = MOD_OPT,
     action = wezterm.action.SendKey({ key = 'w', mods = 'CTRL' }),
   },
 
@@ -3464,26 +3482,26 @@ config.keys = {
   -- Cmd+D: vertical split
   {
     key = 'd',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.SplitHorizontal({ domain = 'CurrentPaneDomain' }),
   },
 
   -- Cmd+Shift+D: horizontal split
   {
     key = 'D',
-    mods = 'CMD|SHIFT',
+    mods = MOD_SHIFT,
     action = wezterm.action.SplitVertical({ domain = 'CurrentPaneDomain' }),
   },
 
   -- Cmd+Shift+[ / ]: prev/next tab
   {
     key = '[',
-    mods = 'CMD|SHIFT',
+    mods = MOD_SHIFT,
     action = wezterm.action.ActivateTabRelative(-1),
   },
   {
     key = ']',
-    mods = 'CMD|SHIFT',
+    mods = MOD_SHIFT,
     action = wezterm.action.ActivateTabRelative(1),
   },
 
@@ -3491,69 +3509,69 @@ config.keys = {
   -- Cmd+Option+Arrow: navigate between splits
   {
     key = 'LeftArrow',
-    mods = 'CMD|OPT',
+    mods = MOD_CMD_OPT,
     action = wezterm.action.ActivatePaneDirection('Left'),
   },
   {
     key = 'RightArrow',
-    mods = 'CMD|OPT',
+    mods = MOD_CMD_OPT,
     action = wezterm.action.ActivatePaneDirection('Right'),
   },
   {
     key = 'UpArrow',
-    mods = 'CMD|OPT',
+    mods = MOD_CMD_OPT,
     action = wezterm.action.ActivatePaneDirection('Up'),
   },
   {
     key = 'DownArrow',
-    mods = 'CMD|OPT',
+    mods = MOD_CMD_OPT,
     action = wezterm.action.ActivatePaneDirection('Down'),
   },
 
   -- Cmd+1~9: switch tab
   {
     key = '1',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.ActivateTab(0),
   },
   {
     key = '2',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.ActivateTab(1),
   },
   {
     key = '3',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.ActivateTab(2),
   },
   {
     key = '4',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.ActivateTab(3),
   },
   {
     key = '5',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.ActivateTab(4),
   },
   {
     key = '6',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.ActivateTab(5),
   },
   {
     key = '7',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.ActivateTab(6),
   },
   {
     key = '8',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.ActivateTab(7),
   },
   {
     key = '9',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.ActivateTab(8),
   },
 
@@ -3561,7 +3579,7 @@ config.keys = {
   -- Cmd+Enter / Shift+Enter: newline without execute
   {
     key = 'Enter',
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.SendString('\n'),
   },
   {
@@ -3573,36 +3591,36 @@ config.keys = {
   -- Cmd+Shift+Enter: Toggle Pane Zoom (Maximize active pane)
   {
     key = 'Enter',
-    mods = 'CMD|SHIFT',
+    mods = MOD_SHIFT,
     action = wezterm.action.TogglePaneZoomState,
   },
 
   -- Cmd+Shift+S: Toggle split direction (horizontal <-> vertical)
   {
     key = 'S',
-    mods = 'CMD|SHIFT',
+    mods = MOD_SHIFT,
     action = wezterm.action.TogglePaneSplitDirection,
   },
 
   -- Cmd+Ctrl+Arrows: Resize panes
   {
     key = 'LeftArrow',
-    mods = 'CMD|CTRL',
+    mods = MOD_CTRL,
     action = wezterm.action.AdjustPaneSize { 'Left', 5 },
   },
   {
     key = 'RightArrow',
-    mods = 'CMD|CTRL',
+    mods = MOD_CTRL,
     action = wezterm.action.AdjustPaneSize { 'Right', 5 },
   },
   {
     key = 'UpArrow',
-    mods = 'CMD|CTRL',
+    mods = MOD_CTRL,
     action = wezterm.action.AdjustPaneSize { 'Up', 5 },
   },
   {
     key = 'DownArrow',
-    mods = 'CMD|CTRL',
+    mods = MOD_CTRL,
     action = wezterm.action.AdjustPaneSize { 'Down', 5 },
   },
 
@@ -3620,7 +3638,7 @@ config.mouse_bindings = {
   },
   {
     event = { Up = { streak = 1, button = 'Left' } },
-    mods = 'CMD',
+    mods = MOD,
     action = wezterm.action.OpenLinkAtMouseCursor,
   },
 }
