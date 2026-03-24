@@ -198,7 +198,7 @@ regex = "1"
 reqwest = "0.12"
 resize = "0.5"
 rstest = "0.21"
-rusqlite = "0.32"
+rusqlite = { version = "0.32", features = ["bundled"] }
 serde = {version="1.0", default-features=false, features = ["derive"]}
 serde-funcs = { path = "lua-api-crates/serde-funcs" }
 serde_json = "1.0"
