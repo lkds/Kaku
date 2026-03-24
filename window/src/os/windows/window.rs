@@ -334,6 +334,7 @@ impl WindowInner {
                 dimensions: current_dims,
                 window_state: get_window_state(self.hwnd.0),
                 live_resizing: self.in_size_move,
+                screen_changed: false,
             });
         }
 
@@ -967,6 +968,14 @@ impl WindowOps for Window {
 
     fn set_clipboard(&self, _clipboard: Clipboard, text: String) {
         clipboard_win::set_clipboard_string(&text).ok();
+    }
+
+    fn get_clipboard_data(&self, _clipboard: Clipboard) -> Future<ClipboardData> {
+        Future::result(
+            clipboard_win::get_clipboard_string()
+                .map(|s| ClipboardData::Text(s.replace("\r\n", "\n")))
+                .context("Error getting clipboard"),
+        )
     }
 
     fn set_window_drag_position(&self, coords: ScreenPoint) {
