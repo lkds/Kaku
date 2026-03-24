@@ -16,11 +16,15 @@ use serde::Serialize;
 
 #[cfg(unix)]
 pub mod unix;
+#[cfg(windows)]
+pub mod windows;
 
 pub mod buffered;
 
 #[cfg(unix)]
 pub use self::unix::{UnixTerminal, UnixTerminalWaker as TerminalWaker};
+#[cfg(windows)]
+pub use self::windows::{WindowsTerminal, WindowsTerminalWaker as TerminalWaker};
 
 /// Represents the size of the terminal screen.
 /// The number of rows and columns of character cells are expressed.
@@ -110,15 +114,18 @@ pub trait Terminal {
 /// something unusual and want easier access to the constructors.
 #[cfg(unix)]
 pub type SystemTerminal = UnixTerminal;
+#[cfg(windows)]
+pub type SystemTerminal = WindowsTerminal;
 
 /// Construct a new instance of Terminal.
 /// The terminal will have a renderer that is influenced by the configuration
 /// in the provided `Capabilities` instance.
 /// The terminal will explicitly open `/dev/tty` on Unix systems and
-/// the controlling terminal on supported systems, so that it should yield a
+/// `CONIN$` and `CONOUT$` on Windows systems, so that it should yield a
 /// functioning console with minimal headaches.
 /// If you have a more advanced use case you will want to look to the
-/// constructor for `UnixTerminal` and call it directly.
+/// constructors for `UnixTerminal` and `WindowsTerminal` and call whichever
+/// one is most suitable for your needs.
 pub fn new_terminal(caps: Capabilities) -> Result<impl Terminal> {
     SystemTerminal::new(caps)
 }
