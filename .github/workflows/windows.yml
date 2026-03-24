@@ -48,15 +48,17 @@ jobs:
       continue-on-error: true
     
     - name: Create portable package
+      shell: bash
       run: |
         mkdir -p release
         cp target/release/kaku.exe release/
         cp target/release/kaku-gui.exe release/
         cp -r assets release/ 2>/dev/null || true
-        cp README.md release/
-        cp LICENSE.md release/
+        cp README.md release/ 2>/dev/null || true
+        cp LICENSE.md release/ 2>/dev/null || true
     
     - name: Create ZIP archive
+      shell: bash
       run: |
         cd release
         7z a -tzip ../Kaku-${{ github.ref_name }}-windows-x64-portable.zip *
@@ -83,6 +85,7 @@ jobs:
         name: kaku-portable-windows
     
     - name: Extract portable files
+      shell: bash
       run: |
         mkdir -p target/release
         7z x Kaku-*-portable.zip -otarget/release -y
@@ -94,6 +97,7 @@ jobs:
         wix extension add WixToolset.UI.wixext
     
     - name: Build MSI
+      shell: bash
       run: |
         wix build wix/kaku.wxs -ext WixToolset.UI.wixext -o Kaku-0.8.0-windows-x64.msi
     
@@ -119,6 +123,7 @@ jobs:
         name: kaku-portable-windows
     
     - name: Extract portable files
+      shell: bash
       run: |
         mkdir -p target/release
         7z x Kaku-*-portable.zip -otarget/release -y
@@ -127,6 +132,7 @@ jobs:
       run: choco install nsis -y
     
     - name: Build NSIS Installer
+      shell: bash
       run: |
         makensis kaku.nsi
     
